@@ -4,7 +4,8 @@ import re
 #important variable for determing cause of death
 volatileDOT = ['Bind','Clamp','Fire Spin','Infestation',
                'Magma Storm','Sand Tomb','Snap Trap','Thunder Cage',
-               'Whirlpool','Wrap','Salt Cure']
+               'Whirlpool','Wrap','Salt Cure', 'Leech Seed', 'Nightmare',
+               'Curse']
 def pokeList():
         global p1pL,p2pL
         #list of just the pokemon
@@ -44,7 +45,10 @@ def kill_analyze():
                    dead_to_spikes.append((dead,t_index))
                 elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(psn)' % dead,t)):
                     dead_to_psn.append((dead,t_index))
-                elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(brn|%s)' % (dead,'|.+|'.join(volatileDOT)),t)):
+                elif bool(re.search(r'%s\|0 fnt\|\[from\]\sability:' % dead,t)):
+                    killer = re.findall(r'%s\|0 fnt\|\[from\]\sability:.+\[of\]\s(.+)' % dead, t)[0]
+                    kill_list.append(killer)
+                elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(brn|confusion|%s)' % (dead,'|.+|'.join(volatileDOT)),t)):
                     dead_to_other.append((dead,t_index))
                 else:
                     killer = re.findall(r'(?<=\|move\|)p.+(?=\|.+\|%s)(?!\|\[notarget\])' % dead,t)[0]
@@ -91,16 +95,15 @@ def hazardTurns(player):
         tspikers = []
         for t in turnlist:
             if bool(re.search(r'-sideend\|%s:.+\|Toxic Spikes' % player,t)):
-                tspikers.clear()
+                tspikers = []
             if bool(re.search(r'-sidestart\|%s:.+\|move: Toxic Spikes' % player,t)):
                 try:
                     tspike = re.findall(r'(?<=\|move\|)%sa:.+?(?=\|)' % opp,t)[0]
                 except:
-                    try:
-                        tspike = re.findall(r'(?<=\|-activate\|)p2a:.+?(?=\|.+Toxic Debris)' % opp,t)[0]
-                    except:
-                        pass
-                tspikers.append(tspike)
+                    tspike = re.findall(r'(?<=\|-activate\|)%sa:.+?(?=\|.+Toxic Debris)' % opp,t)[0]
+            else:
+                tspike = ''
+            tspikers.append(tspike)
             globals()[f'{player}TS'].append(list(tspikers))
         return globals()[f'{player}SR'], globals()[f'{player}SP'], globals()[f'{player}TS']
 
@@ -110,7 +113,6 @@ def indirectAward(mode):
         for mon in dead_to_rocks:
             monplayer = mon[0][:2]
             hazardkiller = globals()[f'{monplayer}SR'][mon[1]]
-            #print(hazardkiller)
             try:
                 kill_list.append(hazardkiller)
             except:
@@ -125,7 +127,6 @@ def indirectAward(mode):
             else:
                 spiker_index = 2
             hazardkiller = globals()[f'{monplayer}SP'][mon[1]][spiker_index]
-            #print(hazardkiller)
             try:
                 kill_list.append(hazardkiller)
             except:
@@ -154,7 +155,7 @@ def indirectAward(mode):
                         psnr = globals()[r'%sTS' % monplayer][mon[1]][tspike_index]
                         #this determined which tspiker gets the kill
                     elif bool(re.search(latestpsn,t)):
-                        #poisoner_candidates
+                        #poisoner candidates
                         psnr_c = re.findall(r'\|(p[^%s]a: .+)\|' % monplayer,t)
                         psnr = [x for x in psnr_c if '|' not in x][0]
             try:
@@ -169,30 +170,42 @@ def indirectAward(mode):
             if bool(re.search(r'\|-damage\|%s\|0 fnt\|\[from\] brn' % mon[0],rawlog)):
                 burns = re.findall(r'\|-status\|%s\|brn(?:\|\[from\].+)?\n' % mon[0],rawlog)
                 latestburn = re.escape(burns[-1])
-                #print(burns,latestburn,sep='\n')
                 #flame orb check
                 if bool(re.search('Flame Orb',burns[-1])):
                     if bool(re.search(r'\|-item\|%s\|Flame Orb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0], re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])):
                         #burner candidates
                         burner_c = re.findall(r'\|-activate\|(.+|%s)\|move: Trick\|\[of\] (%s|.+)' % (mon[0],mon[0]),re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])[-1]
                         burner = [x for x in burner_c if x != mon[0]][0]
-                        #print(burner)
                     else:
                         burner = re.findall(r'\|-item\|%s\|Flame Orb\|\[from\].+Magician\|\[of\]\s(.+)' % mon[0],re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])[-1]
-                        #print(burner)
                 else:
                     for t in reversed(turnlist):
                         if bool(re.search(latestburn,t)):
-                            #burner_candidates
                             burner_c = re.findall(r'\|(p[^%s]a: .+)\|' % monplayer,t)
                             burner = [x for x in burner_c if '|' not in x][0]
-                            #print(burner)
                 kill_list.append(burner)
+            #confusion
+            elif bool(re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\sconfusion' % mon[0],turnlist[mon[1]])):
+                latestconf = re.findall(r'\|-start\|%s\|confusion.*' % mon[0],rawlog)[-1]
+                if '[fatigue]' in latestconf:
+                    pass
+                else:
+                    if 'Poison Puppeteer' in latestconf:
+                        killer = re.findall(r'\[of\]\s(.+)',latestconf)[0]
+                    else:
+                        for t in reversed(turnlist):
+                            if bool(re.search(r'%s' % re.escape(latestconf),t)):
+                                if bool(re.search(r'\|-heal\|%s\|.+item:.*Berry\n\|-start\|.*confusion' % mon[0],t)):
+                                    pass
+                                else:
+                                    killer = re.findall(r'\|move\|(.+)\|.+%s' % mon[0],t)[0]
+                                    break
+                    kill_list.append(killer)
             #volatile damage-over-time check
             elif bool(re.search(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]\s).+(?!brn|.+Sticky Barb)' % mon[0],turnlist[mon[1]])):
                 widenet = re.findall(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]).+' % mon[0],turnlist[mon[1]])[0]
                 try:
-                   smallnet = re.sub(r'\s*?move:\s|\|\[partiallytrapped\]','',widenet)
+                    smallnet = re.sub(r'\s*?move:\s|\|\[partiallytrapped\]|^\s|\|\[of\].+','',widenet)
                 except:
                     smallnet = widenet
                 if smallnet in volatileDOT:
@@ -200,7 +213,7 @@ def indirectAward(mode):
                         #check if a pokemon clicked the killing move on the dead
                         if bool(re.search(r'\|move\|.+\|%s\|%s\n' % (smallnet, mon[0]),t)):
                             switchflag = False
-                            lastuser = re.findall(r'(?<=\|move\|).+(?=\|%s\|%s\n)' % (smallnet, mon[0]),t)[0]
+                            lastuser = re.findall(r'(?<=\|move\|).+(?=\|%s\|%s)' % (smallnet, mon[0]),t)[0]
                         #check if the pokemon switched out of the volatile effect
                         elif bool(re.search(r'\switch\|%s' % mon[0],t)):
                             switchflag = True
@@ -209,10 +222,9 @@ def indirectAward(mode):
                     #gives the kill to the last user of the volatile move
                     if switchflag == False:
                         killer = lastuser
-                        #print(killer)
                         kill_list.append(killer)
             #check for sticky barb
-            if bool(re.search(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]\s).+Sticky Barb' % mon[0],turnlist[mon[1]])):
+            elif bool(re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\s.+Sticky Barb' % mon[0],turnlist[mon[1]])):
                 if bool(re.search(r'\|-item\|%s\|Sticky Barb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0],rawlog)):
                     barber_c = re.findall(r'\|-activate\|(.+|%s)\|move: Trick\|\[of\] (%s|.+)' % (mon[0],mon[0]),rawlog)[-1]
                     barber = [x for x in barber_c if x != mon[0]][0]
