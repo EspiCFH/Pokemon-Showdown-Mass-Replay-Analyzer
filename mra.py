@@ -34,28 +34,49 @@ def kill_analyze():
     dead_to_spikes = []
     dead_to_other = []
     dead_to_psn = []
+    t_index = 0
     for t in turnlist:
         turnspl = t.split('\n')
+        #check for perish song kill
+        if bool(re.search(r'\|-start\|.+perish0',t)):
+            perished = re.findall(r'\|-start\|(.+)\|perish0',t)
+            perish_turn = turnlist[t_index-3]
+            perisher = re.findall(r'\|move\|(.+)\|Perish Song',perish_turn)[-1]
+            for d in perished:
+                if d == perisher:
+                    pass
+                else:
+                    kill_list.append(perisher)
         for x in turnspl:
             if bool(re.search(r'-damage\|(.+)\|0 fnt',x)):
                 dead = re.findall(r'(?<=\|)p.+(?=\|0 fnt)',x)[0]
+                #check for rocks kill
                 if bool(re.search(r'%s\|0 fnt\|\[from\]\s(Stealth Rock)' % dead,t)):
                    dead_to_rocks.append((dead,t_index))
+                #check for spikes kill
                 elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(Spikes)' % dead,t)):
                    dead_to_spikes.append((dead,t_index))
+                #check for poison kill
                 elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(psn)' % dead,t)):
                     dead_to_psn.append((dead,t_index))
+                #check for ability kill
                 elif bool(re.search(r'%s\|0 fnt\|\[from\]\sability:' % dead,t)):
                     killer = re.findall(r'%s\|0 fnt\|\[from\]\sability:.+\[of\]\s(.+)' % dead, t)[0]
                     kill_list.append(killer)
+                #check for burn/confusion/volatile damage over time kill
                 elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(brn|confusion|%s)' % (dead,'|.+|'.join(volatileDOT)),t)):
                     dead_to_other.append((dead,t_index))
+                #check for Future Sight/Doom Desire kill
+                elif bool(re.search(r'-end\|%s\|move: (Future Sight|Doom Desire)\n[\s\S]*?%s\|0 fnt' % (dead,dead),t)):
+                    killer = re.findall(r'\|move\|(.+)\|Future Sight\|%s' % dead,rawlog)[-1]
+                    kill_list.append(killer)
+                #otherwise, assume the pokemon that did the killing was whichever other mon clicked a move
                 else:
                     killer = re.findall(r'(?<=\|move\|)p.+(?=\|.+\|%s)(?!\|\[notarget\])' % dead,t)[0]
                     kill_list.append(killer)
+        t_index += 1
         fainted = re.findall(r'(?<=\|faint\|).+',t)
         dead_list.extend(fainted)
-        t_index += 1
     return kill_list, dead_list, dead_to_rocks, dead_to_spikes, dead_to_other, dead_to_psn
 
 def hazardTurns(player):
