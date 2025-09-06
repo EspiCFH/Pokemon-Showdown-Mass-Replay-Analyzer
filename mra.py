@@ -177,7 +177,7 @@ def indirectAward(mode):
                         #this determined which tspiker gets the kill
                     elif bool(re.search(latestpsn,t)):
                         #poisoner candidates
-                        psnr_c = re.findall(r'\|(p[^%s]a: .+)\|' % monplayer,t)
+                        psnr_c = re.findall(r'\|move\|(p[^%s]a: .+)\|.+\|%s' % (monplayer[-1],mon[0]),t)
                         psnr = [x for x in psnr_c if '|' not in x][0]
             try:
                 kill_list.append(psnr)
@@ -202,7 +202,7 @@ def indirectAward(mode):
                 else:
                     for t in reversed(turnlist):
                         if bool(re.search(latestburn,t)):
-                            burner_c = re.findall(r'\|(p[^%s]a: .+)\|' % monplayer,t)
+                            burner_c = re.findall(r'\|(p[^%s]a: .+)\|.+\|%s' % (monplayer[-1],mon[0]),t)
                             burner = [x for x in burner_c if '|' not in x][0]
                 kill_list.append(burner)
             #confusion
@@ -261,7 +261,8 @@ def indirectAward(mode):
 
 def analyzeReplay(r):
     global kill_list, dead_list, dead_to_rocks, dead_to_spikes, dead_to_other, dead_to_psn, rawlog, turnlist, loglines
-    link = r + '.log'
+    print(f'Now analyzing: {r}')
+    link = re.sub('\s|\?p\d$','',r) + '.log'
     #get replay log
     logfile = requests.get(link)
     rawlog = logfile.text
