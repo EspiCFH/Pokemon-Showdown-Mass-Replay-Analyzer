@@ -6,8 +6,7 @@ I have not ironed out every edge case so there's a high likelyhood that this run
 # To Use:
 When you open the program, you will be prompted between two options, Single Replay, and Multiple.
 "Single Replay" lets you submit and analyze 1 replay.
-"Multiple" will read all the replays within the replays.txt file that comes with the release.
-###### It will analyze those in whichever order given.
+"Multiple" will read all the replays within the replays.txt file that comes with the release. (It will analyze those in whichever order given.)
 To see the result of the analysis, check the output.txt file.
 If it doesnt seem like every replay is being analyzed, please send me a DM on Discord with the replay in question and I will try to help you to the best of my ability.
 my discord is EspiCFH, just like my GitHub
