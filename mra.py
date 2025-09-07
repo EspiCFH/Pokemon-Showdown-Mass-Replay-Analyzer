@@ -72,8 +72,10 @@ def kill_analyze():
                     kill_list.append(killer)
                 #otherwise, assume the pokemon that did the killing was whichever other mon clicked a move
                 else:
-                    killer = re.findall(r'(?<=\|move\|)p.+(?=\|.+\|%s)(?!\|\[notarget\])' % dead,t)[0]
-                    kill_list.append(killer)
+                    killer = re.findall(r'\|move\|(p.+)\|.+\|%s(?!\|\[notarget\])' % dead,t)
+                    if killer == []:
+                        killer = re.findall(r'\|-anim\|(p.+)\|.+\|%s(?!\|\[notarget\])' % dead,t)
+                    kill_list.append(killer[0])
         t_index += 1
         fainted = re.findall(r'(?<=\|faint\|).+',t)
         dead_list.extend(fainted)
@@ -116,15 +118,13 @@ def hazardTurns(player):
         tspikers = []
         for t in turnlist:
             if bool(re.search(r'-sideend\|%s:.+\|Toxic Spikes' % player,t)):
-                tspikers = []
+                tspikers.clear()
             if bool(re.search(r'-sidestart\|%s:.+\|move: Toxic Spikes' % player,t)):
                 try:
                     tspike = re.findall(r'(?<=\|move\|)%sa:.+?(?=\|)' % opp,t)[0]
                 except:
                     tspike = re.findall(r'(?<=\|-activate\|)%sa:.+?(?=\|.+Toxic Debris)' % opp,t)[0]
-            else:
-                tspike = ''
-            tspikers.append(tspike)
+                tspikers.append(tspike)
             globals()[f'{player}TS'].append(list(tspikers))
         return globals()[f'{player}SR'], globals()[f'{player}SP'], globals()[f'{player}TS']
 
@@ -167,8 +167,8 @@ def indirectAward(mode):
                     psnr = re.findall(r'\|-item\|%s\|Toxic Orb\|\[from\].+Magician\|\[of\]\s(.+)' % mon[0],re.findall(r'[\s\S]+%s' % latestpsn,rawlog)[0])[-1]
             else:
                 for t in reversed(turnlist):
-                    if bool(re.search(r'\|switch\|%s\|.+\n%s' % (mon[0],latestpsn),t)) and len(re.findall(latestpsn,t)) == 1:
-                        finalhp = re.findall(r'\|%s\|.*?(\d*)\/100' % mon[0],turnlist[mon[1]])[-1]
+                    if bool(re.search(r'\|switch\|%s\|.+[\s\S]*?%s' % (mon[0],latestpsn),t)) and len(re.findall(latestpsn,t)) == 1:
+                        finalhp = re.findall(r'\|%s\|.*?(\d*)\/100' % mon[0],rawlog)[-1]
                         if int(finalhp) <= 13:
                             tspike_index = 0
                         else:
