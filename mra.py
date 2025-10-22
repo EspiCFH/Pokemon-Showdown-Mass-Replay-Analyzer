@@ -38,7 +38,7 @@ def kill_analyze():
     for t in turnlist:
         turnspl = t.split('\n')
         #check for perish song kill
-        if bool(re.search(r'\|-start\|.+perish0',t)):
+        if re.search(r'\|-start\|.+perish0',t):
             perished = re.findall(r'\|-start\|(.+)\|perish0',t)
             perish_turn = turnlist[t_index-3]
             perisher = re.findall(r'\|move\|(.+)\|Perish Song',perish_turn)[-1]
@@ -48,33 +48,35 @@ def kill_analyze():
                 else:
                     kill_list.append(perisher)
         for x in turnspl:
-            if bool(re.search(r'-damage\|(.+)\|0 fnt',x)):
-                dead = re.findall(r'(?<=\|)p.+(?=\|0 fnt)',x)[0]
+            if re.search(r'-damage\|(.+)\|0 fnt',x):
+                dead = re.escape(re.findall(r'\|(p.+)\|0 fnt',x)[0])
+                monplayer = dead[:2]
+                otherp = 'p1' if monplayer == 'p2' else 'p2'
                 #check for rocks kill
-                if bool(re.search(r'%s\|0 fnt\|\[from\]\s(Stealth Rock)' % dead,t)):
+                if re.search(r'%s\|0 fnt\|\[from\]\s(Stealth Rock)' % dead,t):
                    dead_to_rocks.append((dead,t_index))
                 #check for spikes kill
-                elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(Spikes)' % dead,t)):
+                elif re.search(r'%s\|0 fnt\|\[from\]\s(Spikes)' % dead,t):
                    dead_to_spikes.append((dead,t_index))
                 #check for poison kill
-                elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(psn)' % dead,t)):
+                elif re.search(r'%s\|0 fnt\|\[from\]\s(psn)' % dead,t):
                     dead_to_psn.append((dead,t_index))
                 #check for ability kill
-                elif bool(re.search(r'%s\|0 fnt\|\[from\]\sability:' % dead,t)):
+                elif re.search(r'%s\|0 fnt\|\[from\]\sability:' % dead,t):
                     killer = re.findall(r'%s\|0 fnt\|\[from\]\sability:.+\[of\]\s(.+)' % dead, t)[0]
                     kill_list.append(killer)
                 #check for burn/confusion/volatile damage over time kill
-                elif bool(re.search(r'%s\|0 fnt\|\[from\]\s(brn|confusion|%s)' % (dead,'|.+|'.join(volatileDOT)),t)):
+                elif re.search(r'%s\|0 fnt\|\[from\]\s(brn|confusion|%s)' % (dead,'|.+|'.join(volatileDOT)),t):
                     dead_to_other.append((dead,t_index))
                 #check for Future Sight/Doom Desire kill
-                elif bool(re.search(r'-end\|%s\|move: (Future Sight|Doom Desire)\n[\s\S]*?%s\|0 fnt' % (dead,dead),t)):
-                    killer = re.findall(r'\|move\|(.+)\|Future Sight\|%s' % dead,rawlog)[-1]
+                elif re.search(r'-end\|%s\|move: (Future Sight|Doom Desire)[\s\S]*?%s\|0 fnt' % (dead,dead),t):
+                    killer = re.findall(r'\|move\|(%s.+)\|(?:Future Sight|Doom Desire)' % otherp,rawlog)[-1]
                     kill_list.append(killer)
                 #otherwise, assume the pokemon that did the killing was whichever other mon clicked a move
                 else:
-                    killer = re.findall(r'\|move\|(p.+)\|.+\|%s(?!\|\[notarget\])' % dead,t)
+                    killer = re.findall(r'\|move\|(%s.+)\|.+\|%s(?!\|\[notarget\])' % (otherp,dead),t)
                     if killer == []:
-                        killer = re.findall(r'\|-anim\|(p.+)\|.+\|%s(?!\|\[notarget\])' % dead,t)
+                        killer = re.findall(r'\|-anim\|(%s.+)\|.+\|%s(?!\|\[notarget\])' % (otherp,dead),t)
                     kill_list.append(killer[0])
         t_index += 1
         fainted = re.findall(r'(?<=\|faint\|).+',t)
@@ -94,10 +96,10 @@ def hazardTurns(player):
             return None
         #stealth rock checks
         for t in turnlist:
-            if bool(re.search(r'-sidestart\|%s:.+Stealth Rock' % player,t)):
+            if re.search(r'-sidestart\|%s:.+Stealth Rock' % player,t):
                 rocker = re.findall(r'(?<=\|move\|)%sa:.+?(?=\|)' % opp,t)[0]
                 globals()[f'{player}SR'].append(rocker)
-            elif bool(re.search(r'-sideend\|%s.+Stealth Rock' % player,t)):
+            elif re.search(r'-sideend\|%s.+Stealth Rock' % player,t):
                 globals()[f'{player}SR'].append(rocker)
                 rocker = ''
             else:
@@ -108,18 +110,18 @@ def hazardTurns(player):
         #spikes checks
         spikers = []
         for t in turnlist:
-            if bool(re.search(r'-sideend\|%s:.+\|Spikes' % player,t)):
+            if re.search(r'-sideend\|%s:.+\|Spikes' % player,t):
                 spikers.clear()
-            if bool(re.search(r'-sidestart\|%s:.+\|Spikes' % player,t)):
+            if re.search(r'-sidestart\|%s:.+\|Spikes' % player,t):
                 spike = re.findall(r'(?<=\|move\|)%sa:.+?(?=\|)' % opp,t)[0]
                 spikers.append(spike)
             globals()[f'{player}SP'].append(list(spikers))
         #toxic spikes checks
         tspikers = []
         for t in turnlist:
-            if bool(re.search(r'-sideend\|%s:.+\|Toxic Spikes' % player,t)):
+            if re.search(r'-sideend\|%s:.+\|Toxic Spikes' % player,t):
                 tspikers.clear()
-            if bool(re.search(r'-sidestart\|%s:.+\|move: Toxic Spikes' % player,t)):
+            if re.search(r'-sidestart\|%s:.+\|move: Toxic Spikes' % player,t):
                 try:
                     tspike = re.findall(r'(?<=\|move\|)%sa:.+?(?=\|)' % opp,t)[0]
                 except:
@@ -158,8 +160,8 @@ def indirectAward(mode):
             psns = re.findall(r'\|-status\|%s\|(?:psn|tox)(?:\|\[from\].+)?\n' % mon[0],rawlog)
             latestpsn = re.escape(psns[-1])
             #toxic orb check
-            if bool(re.search('Toxic Orb',psns[-1])):
-                if bool(re.search(r'\|-item\|%s\|Toxic Orb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0], re.findall(r'[\s\S]+%s' % latestpsn,rawlog)[0])):
+            if re.search('Toxic Orb',psns[-1]):
+                if re.search(r'\|-item\|%s\|Toxic Orb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0], re.findall(r'[\s\S]+%s' % latestpsn,rawlog)[0]):
                     #poisoner candidates
                     psnr_c = re.findall(r'\|-activate\|(.+|%s)\|move: Trick\|\[of\] (%s|.+)' % (mon[0],mon[0]),re.findall(r'[\s\S]+%s' % latestpsn,rawlog)[0])[-1]
                     psnr = [x for x in psnr_c if x != mon[0]][0]
@@ -167,7 +169,7 @@ def indirectAward(mode):
                     psnr = re.findall(r'\|-item\|%s\|Toxic Orb\|\[from\].+Magician\|\[of\]\s(.+)' % mon[0],re.findall(r'[\s\S]+%s' % latestpsn,rawlog)[0])[-1]
             else:
                 for t in reversed(turnlist):
-                    if bool(re.search(r'\|switch\|%s\|.+[\s\S]*?%s' % (mon[0],latestpsn),t)) and len(re.findall(latestpsn,t)) == 1:
+                    if re.search(r'\|switch\|%s\|.+[\s\S]*?%s' % (mon[0],latestpsn),re.findall(r'[\s\S]*?(?=\|move\|)',t)[0]) and len(re.findall(latestpsn,t)) == 1:
                         finalhp = re.findall(r'\|%s\|.*?(\d*)\/100' % mon[0],rawlog)[-1]
                         if int(finalhp) <= 13:
                             tspike_index = 0
@@ -175,7 +177,7 @@ def indirectAward(mode):
                             tspike_index = -1
                         psnr = globals()[r'%sTS' % monplayer][mon[1]][tspike_index]
                         #this determined which tspiker gets the kill
-                    elif bool(re.search(latestpsn,t)):
+                    elif re.search(latestpsn,t):
                         #poisoner candidates
                         psnr_c = re.findall(r'\|move\|(p[^%s]a: .+)\|.+\|%s' % (monplayer[-1],mon[0]),t)
                         psnr = [x for x in psnr_c if '|' not in x][0]
@@ -188,12 +190,12 @@ def indirectAward(mode):
         for mon in dead_to_other:
             monplayer = mon[0][:2]
             #check for burn
-            if bool(re.search(r'\|-damage\|%s\|0 fnt\|\[from\] brn' % mon[0],rawlog)):
+            if re.search(r'\|-damage\|%s\|0 fnt\|\[from\] brn' % mon[0],rawlog):
                 burns = re.findall(r'\|-status\|%s\|brn(?:\|\[from\].+)?\n' % mon[0],rawlog)
                 latestburn = re.escape(burns[-1])
                 #flame orb check
-                if bool(re.search('Flame Orb',burns[-1])):
-                    if bool(re.search(r'\|-item\|%s\|Flame Orb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0], re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])):
+                if re.search('Flame Orb',burns[-1]):
+                    if re.search(r'\|-item\|%s\|Flame Orb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0], re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0]):
                         #burner candidates
                         burner_c = re.findall(r'\|-activate\|(.+|%s)\|move: Trick\|\[of\] (%s|.+)' % (mon[0],mon[0]),re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])[-1]
                         burner = [x for x in burner_c if x != mon[0]][0]
@@ -201,12 +203,12 @@ def indirectAward(mode):
                         burner = re.findall(r'\|-item\|%s\|Flame Orb\|\[from\].+Magician\|\[of\]\s(.+)' % mon[0],re.findall(r'[\s\S]+%s' % latestburn,rawlog)[0])[-1]
                 else:
                     for t in reversed(turnlist):
-                        if bool(re.search(latestburn,t)):
+                        if re.search(latestburn,t):
                             burner_c = re.findall(r'\|(p[^%s]a: .+)\|.+\|%s' % (monplayer[-1],mon[0]),t)
                             burner = [x for x in burner_c if '|' not in x][0]
                 kill_list.append(burner)
             #confusion
-            elif bool(re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\sconfusion' % mon[0],turnlist[mon[1]])):
+            elif re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\sconfusion' % mon[0],turnlist[mon[1]]):
                 latestconf = re.findall(r'\|-start\|%s\|confusion.*' % mon[0],rawlog)[-1]
                 if '[fatigue]' in latestconf:
                     pass
@@ -215,15 +217,15 @@ def indirectAward(mode):
                         killer = re.findall(r'\[of\]\s(.+)',latestconf)[0]
                     else:
                         for t in reversed(turnlist):
-                            if bool(re.search(r'%s' % re.escape(latestconf),t)):
-                                if bool(re.search(r'\|-heal\|%s\|.+item:.*Berry\n\|-start\|.*confusion' % mon[0],t)):
+                            if re.search(r'%s' % re.escape(latestconf),t):
+                                if re.search(r'\|-heal\|%s\|.+item:.*Berry\n\|-start\|.*confusion' % mon[0],t):
                                     pass
                                 else:
                                     killer = re.findall(r'\|move\|(.+)\|.+%s' % mon[0],t)[0]
                                     break
                     kill_list.append(killer)
             #volatile damage-over-time check
-            elif bool(re.search(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]\s).+(?!brn|.+Sticky Barb)' % mon[0],turnlist[mon[1]])):
+            elif re.search(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]\s).+(?!brn|.+Sticky Barb)' % mon[0],turnlist[mon[1]]):
                 widenet = re.findall(r'(?<=\n\|-damage\|%s\|0 fnt\|\[from\]).+' % mon[0],turnlist[mon[1]])[0]
                 try:
                     smallnet = re.sub(r'\s*?move:\s|\|\[partiallytrapped\]|^\s|\|\[of\].+','',widenet)
@@ -232,11 +234,11 @@ def indirectAward(mode):
                 if smallnet in volatileDOT:
                     for t in turnlist:
                         #check if a pokemon clicked the killing move on the dead
-                        if bool(re.search(r'\|move\|.+\|%s\|%s\n' % (smallnet, mon[0]),t)):
+                        if re.search(r'\|move\|.+\|%s\|%s\n' % (smallnet, mon[0]),t):
                             switchflag = False
                             lastuser = re.findall(r'(?<=\|move\|).+(?=\|%s\|%s)' % (smallnet, mon[0]),t)[0]
                         #check if the pokemon switched out of the volatile effect
-                        elif bool(re.search(r'\switch\|%s' % mon[0],t)):
+                        elif re.search(r'\switch\|%s' % mon[0],t):
                             switchflag = True
                         else:
                             pass
@@ -245,8 +247,8 @@ def indirectAward(mode):
                         killer = lastuser
                         kill_list.append(killer)
             #check for sticky barb
-            elif bool(re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\s.+Sticky Barb' % mon[0],turnlist[mon[1]])):
-                if bool(re.search(r'\|-item\|%s\|Sticky Barb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0],rawlog)):
+            elif re.search(r'\n\|-damage\|%s\|0 fnt\|\[from\]\s.+Sticky Barb' % mon[0],turnlist[mon[1]]):
+                if re.search(r'\|-item\|%s\|Sticky Barb\|\[from\] move: (?:Trick|Switcheroo)' % mon[0],rawlog):
                     barber_c = re.findall(r'\|-activate\|(.+|%s)\|move: Trick\|\[of\] (%s|.+)' % (mon[0],mon[0]),rawlog)[-1]
                     barber = [x for x in barber_c if x != mon[0]][0]
                     kill_list.append(barber)
@@ -262,7 +264,7 @@ def indirectAward(mode):
 def analyzeReplay(r):
     global kill_list, dead_list, dead_to_rocks, dead_to_spikes, dead_to_other, dead_to_psn, rawlog, turnlist, loglines
     print(f'Now analyzing: {r}')
-    link = re.sub('\s|\?p\d$','',r) + '.log'
+    link = re.sub(r'\s|\?p\d$','',r) + '.log'
     #get replay log
     logfile = requests.get(link)
     rawlog = logfile.text
@@ -314,9 +316,10 @@ def analyzeReplay(r):
 
 
 print('Welcome to the Mass Replay Analyzer')
-print('Would you like to analyze 1 replay or multiple replays from a list?')
-print('(Replays can be pasted line by line in replay.txt in the same directory')
-print('0 - Single Replay\n1 - Multiple')
+print('Would you like to analyze 1 replay, multiple replays from a file, or multiple replays from your clipboard?')
+print('0 - Single Replay\n1 - replays.txt Multiple\n2 - Paste multiple')
+f = open('output.txt','w')
+f.close()
 while True:
     response = input('')
     if response == '0':
@@ -330,7 +333,25 @@ while True:
         rfile = open('replays.txt')
         rlist = rfile.readlines()
         for r in rlist:
-            analyzeReplay(r.replace('\n',''))
+            try:
+                analyzeReplay(r.replace('\n',''))
+            except:
+                print('An error occured')
+        break
+    elif response == '2':
+        replays = []
+        print('Paste however many replays you\'d like.')
+        print('Type "End" to stop pasting replays (not case sensitive)')
+        while True:
+            line = input('')
+            if line.lower() == 'end':
+                break
+            replays.append(line)
+        for replay in replays:
+            try:
+                analyzeReplay(replay)
+            except:
+                print('An error occured')
         break
     else:
         print('INVALID RESPONSE, please try again')
