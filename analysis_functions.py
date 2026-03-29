@@ -376,23 +376,23 @@ def kill_award(mon,flags,turn):
     elif flags[0] == 'misc':
         if flags[1] == 'FS/DD':
             killer = re.findall(r'\|move\|(.+)\|(?:Future Sight|Doom Desire)\|%s\n\|-start\|' % mon,turnlist[dead_turn-2])[0]
-        if flags[1] == 'perish':
+        elif flags[1] == 'perish':
             perisher = re.findall(r'\|move\|(.+)\|Perish Song.+\n\|-start\|',turnlist[turn-3])[0]
             if perisher == mon:
                 pass
             else:
                 killer = perisher
 
-        if flags[1] == 'dbond':
+        elif flags[1] == 'dbond':
             killer = re.findall(r'\|-activate\|(.+)\|move: Destiny Bond\n\|faint\|%s' % mon,turnlist[turn])[0]
 
-        if flags[1] == 'helmet':
-            killer = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\] item: Rocky Helmet\|\[of\] (.+)')[0]
+        elif flags[1] == 'helmet':
+            killer = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\] item: Rocky Helmet\|\[of\] (.+)' % mon,turnlist[turn])[0]
 
-        if flags[1] == 'ability':
-            killer = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\] ability\|[of\] (.+)')[0]
+        elif flags[1] == 'ability':
+            killer = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\] ability.+\|\[of\] (.+)' % mon,turnlist[turn])[0]
 
-        if flags[1] == 'barb':
+        elif flags[1] == 'barb':
             # opponent tricks the mon a barb
             trick_pattern0 = r'\|-activate\|.+\|move: (?:Trick|Switcheroo)\|\[of\]%s\n\|-item\|%s\|(?:Sticky Barb)\|\[from\] move: (?:Trick|Switcheroo)' % (mon,mon)
 

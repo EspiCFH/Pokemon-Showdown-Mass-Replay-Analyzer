@@ -1,8 +1,9 @@
 import analysis_functions as analyze
 from analysis_functions import *
 import re
+import json
 
-def analyze_replay(link):
+def analyze_replay(link,cfg):
     rawlog = analyze.process(link)
     analyze.setlog(rawlog)
 
@@ -11,6 +12,24 @@ def analyze_replay(link):
     p2_list = pokelist[2]
 
     format_type = analyze.gametype()
+
+    if cfg['null_kd_all_doubles']:
+        null_kd = True
+    elif format_type == 'doubles' and cfg['prompt_null']:
+        print('Doubles game detected: List un-shown pokemon with a "-/-" KD?')
+        print('Y - yes\nN - no')
+        while True:
+            doubles_response = input('')
+            if doubles_response.lower() == 'y':
+                null_kd = True
+                break
+            elif doubles_response.lower() == 'n':
+                null_kd = False
+                break
+            else:
+                print('INVALID RESPONSE, please try again')
+    else:
+        null_kd = False
 
     player_names = analyze.pdata()
 
@@ -37,8 +56,6 @@ def analyze_replay(link):
         cause_info = analyze.cause_of_death(mon)
         cumulative_causes.append((mon,cause_info))
 
-    #print('cmc',cumulative_causes,end='\n\n')
-
     killer_list = []
     for ele in cumulative_causes:
         mon = ele[0]
@@ -53,11 +70,17 @@ def analyze_replay(link):
     for mon in p1_list:
         kills = len(re.findall(mon[0],','.join(killer_list)))
         deaths = len(re.findall(mon[0],','.join(cumulative_deaths)))
+        if re.findall(r'\|switch\|%s' % mon[0],analyze.log) == [] and null_kd:
+            kills = '-'
+            deaths = '-'
         p1_kill_data.append((mon[1],kills,deaths))
 
     for mon in p2_list:
         kills = len(re.findall(mon[0],','.join(killer_list)))
         deaths = len(re.findall(mon[0],','.join(cumulative_deaths)))
+        if re.findall(r'\|switch\|%s' % mon[0],analyze.log) == [] and null_kd:
+            kills = '-'
+            deaths = '-'
         p2_kill_data.append((mon[1],kills,deaths))
 
     # preparing output payload
@@ -73,10 +96,13 @@ def analyze_replay(link):
     printlines.append('=-=-=-=-=-=-=-=-=-=\n')
     
     # actually writing the lines to the file
-    with open('output.txt','w') as out:
+    with open('output.txt','a') as out:
         for line in printlines:
             out.write(line)
 
+# reading config from config.json
+with open('config.json','r') as f:
+    config = json.load(f)
 
 # rudimentary UI
 print('Welcome to the Mass Replay Analyzer')
@@ -87,16 +113,20 @@ while True:
     response = input('')
 
     if response == '0':
+        clear = open('output.txt','w') # reset
+        
         print('Please paste the replay link here: ',end='')
         replay = input('')
         replay = re.sub('\n|\?.+$','',replay)
-        analyze_replay(replay)
         try:
-            analyze_replay(replay)
+            print(f'Now analyzing: {replay}')
+            analyze_replay(replay,config)
         except:
-            rint('An error occured while analyzing')
+            print('An error occured while analyzing')
         break
     elif response == '1':
+        clear = open('output.txt','w') # reset
+        
         replays = []
         print('Paste however many replays you\'d like.')
         print('Type "End" to stop pasting replays (not case sensitive)')
@@ -108,9 +138,14 @@ while True:
         for replay in replays:
             replay = re.sub('\n|\?.+$','',replay)
             try:
-                analyze_replay(replay)
+                print(f'Now analyzing: {replay}')
+                analyze_replay(replay,config)
             except:
                 print('An error occured while analyzing')
         break
     else:
         print('INVALID RESPONSE, please try again')
+
+print('PRESS ENTER TWICE TO CLOSE')
+input('')
+input('')
