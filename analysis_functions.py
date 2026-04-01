@@ -182,6 +182,8 @@ def cause_of_death(mon):
             death_flags = ['misc','perish']
         elif re.search(r'\|-activate\|.+\|move: Destiny Bond\n\|faint\|%s' % mon,t):
             death_flags = ['misc','dbond']
+        elif re.search(r'\|move\|%s\|(Healing Wish|Memento|Explosion).+\n\|(?!\|cant)' % mon,t):
+            death_flags = ['self',None]
         elif re.search(r'\|-damage\|%s\|0 fnt\|\[from\]' % mon,t):
             deadfrom = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\]\s(.+)' % mon,t)[-1]
 
@@ -375,7 +377,7 @@ def kill_award(mon,flags,turn):
 
     elif flags[0] == 'misc':
         if flags[1] == 'FS/DD':
-            killer = re.findall(r'\|move\|(.+)\|(?:Future Sight|Doom Desire)\|%s\n\|-start\|' % mon,turnlist[dead_turn-2])[0]
+            killer = re.findall(r'\|move\|(.+)\|(?:Future Sight|Doom Desire)\|%s.+\n\|-start\|' % mon[:3],turnlist[turn-2])[0]
         elif flags[1] == 'perish':
             perisher = re.findall(r'\|move\|(.+)\|Perish Song.+\n\|-start\|',turnlist[turn-3])[0]
             if perisher == mon:

@@ -61,9 +61,11 @@ def analyze_replay(link,cfg):
         mon = ele[0]
         for death_info in ele[1]:
             flags = death_info[0]
+            print(mon,flags)
             dead_turn = death_info[1]
             killer = kill_award(mon,flags,dead_turn)
             killer_list.append(killer)
+    killer_list.remove(None)
 
     p1_kill_data = []
     p2_kill_data = []
@@ -117,12 +119,10 @@ while True:
         
         print('Please paste the replay link here: ',end='')
         replay = input('')
-        replay = re.sub('\n|\?.+$','',replay)
-        try:
-            print(f'Now analyzing: {replay}')
-            analyze_replay(replay,config)
-        except:
-            print('An error occured while analyzing')
+        replay = re.sub(r'\n|\?.+$','',replay)
+        print(f'Now analyzing: {replay}')
+        analyze_replay(replay,config)
+        #print('An error occured while analyzing')
         break
     elif response == '1':
         clear = open('output.txt','w') # reset
@@ -136,7 +136,7 @@ while True:
                 break
             replays.append(line)
         for replay in replays:
-            replay = re.sub('\n|\?.+$','',replay)
+            replay = re.sub(r'\n|\?.+$','',replay)
             try:
                 print(f'Now analyzing: {replay}')
                 analyze_replay(replay,config)
