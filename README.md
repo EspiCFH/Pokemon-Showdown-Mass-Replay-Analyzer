@@ -1,7 +1,7 @@
 # Pokémon Showdown Mass Replay Analyzer
 I have not ironed out every edge case so there's a high likelyhood that this runs into errors down the line that will have to be patched.  
 ###### note: this program does not understand how Zoroark works, due to the nature of Pokemon Showdown replay logs.
-###### second note: as of the most recent version (2.0), this program cannot manage the suppression of Magic Guard via neutralizing gas and having the pokemon die to Toxic Orb/Flame Orb/Sticky Barb
+###### second note: as of the most recent version (2.1.1), this program cannot manage the suppression of Magic Guard via neutralizing gas and having the pokemon die to Toxic Orb/Flame Orb/Sticky Barb
 
 # To Use:
 When you open the program, you will be prompted between two options, **Single Replay**, and **Multiple**.  
