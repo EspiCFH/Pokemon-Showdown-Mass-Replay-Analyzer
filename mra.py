@@ -64,8 +64,9 @@ def analyze_replay(link,cfg):
             dead_turn = death_info[1]
             killer = kill_award(mon,flags,dead_turn)
             killer_list.append(killer)
-    killer_list.remove(None)
 
+    killer_list = [x for x in killer_list where x != None]
+    
     p1_kill_data = []
     p2_kill_data = []
     for mon in p1_list:
