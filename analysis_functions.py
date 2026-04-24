@@ -118,7 +118,7 @@ def poison_flag(mon,cause,turn):
         return 'synchro'
     elif re.search(r'\[from\] ability:',latest_psn):
         return 'ability'
-    elif re.search(r'\|switch\|%s\|[\s\S]+%s' % (mon,latest_psn),turnlist[poison_turn]) and len(re.findall(latest_psn,t))<2:
+    elif re.search(r'\|(switch|drag)\|%s\|[\s\S]+%s' % (mon,latest_psn),turnlist[poison_turn]) and len(re.findall(latest_psn,t))<2:
         return 'tspike'
     else:
         return None
@@ -211,6 +211,8 @@ def cause_of_death(mon):
                     death_flags[1] = 'trap'
                 elif re.search(r'Leech Seed(\|\[|\n)',deadfrom):
                     death_flags[1] = 'leech'
+                elif re.search('Salt Cure',deadfrom):
+                    death_flags[1] = 'salt'
                 else:
                     death_flags[1] = 'switchable'
 
@@ -235,14 +237,14 @@ def kill_award(mon,flags,turn):
         # turn where the pokemon died but cropped at the point the pokemon in question dies
         # the purpose of this is to figure out which of a potential multiple attacks-
         # caused the kill on them
-        move_candidates = re.findall(r'\|move\|(%s.+)\|.+\|%s.+\n' % (opp_player,mon_player),cropped_dead_turn)
+        move_candidates = re.findall(r'\|(?:move|-anim)\|(%s.+)\|.+\|%s.+\n' % (opp_player,mon_player),cropped_dead_turn)
         killer = move_candidates[-1] # implicitly this should always be the one
 
     elif flags[0] ==  'rocks':
         killer = globals()[f'{mon_player}_rocks'][turn]
 
     elif flags[0] == 'spikes':
-        finalhp = int(re.findall(r'\|switch\|%s\|.+\|(\d+)\/100' % mon,turnlist[turn])[-1])
+        finalhp = int(re.findall(r'\|(?:switch|drag)\|%s\|.+\|(\d+)\/100' % mon,turnlist[turn])[-1])
         if finalhp <= 13:
             spike_index = 0
         elif finalhp <= 18:
@@ -364,7 +366,6 @@ def kill_award(mon,flags,turn):
         trapping = ['Bind','Clamp','Fire Spin','Infestation',
                'Magma Storm','Sand Tomb','Snap Trap','Thunder Cage',
                'Whirlpool','Wrap']
-        switchable = ['Salt Cure','Nightmare', 'Curse']
         if flags[1] == 'trap':
             trap_pattern = r'\|-activate\|%s\|move: (?:' % mon + '|'.join(trapping) + r')\|\[of\] (.+)'
             killer = re.findall(trap_pattern,log)[-1]
@@ -372,8 +373,12 @@ def kill_award(mon,flags,turn):
         elif flags[1] == 'leech':
             killer = re.findall(r'\|-damage\|%s\|0 fnt\|\[from\] Leech Seed\|\[of\] (.+)' % mon,turnlist[turn])[0]
 
+        elif flags[1] == 'salt':
+            killer = re.findall(r'\|move\|(.+)\|Salt Cure\|%s[\s\S]+?\|-start\|%s\|Salt Cure' % (mon,mon),log)
+            killer = killer[-1]
+
         elif flags[1] == 'switchable':
-            killer = re.findall(r'\|move\|(.+)\|' + '|'.join(switchable) + r'%s\n(?:\|-.+)?\n\|-damage\|%s\|.+\n\|-start\|%s\|' % (mon,mon,mon),log)[-1]
+            killer = re.findall(r'\|move\|(.+)\|(?:Nightmare|Curse)\|%s(?!\|\|\[still\])' % mon,log)[-1]
 
     elif flags[0] == 'misc':
         if flags[1] == 'FS/DD':

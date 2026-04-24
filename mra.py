@@ -13,7 +13,7 @@ def analyze_replay(link,cfg):
 
     format_type = analyze.gametype()
 
-    if cfg['null_kd_all_doubles']:
+    if cfg['null_kd_all_doubles'] and format_type == 'doubles':
         null_kd = True
     elif format_type == 'doubles' and cfg['prompt_null']:
         print('Doubles game detected: List un-shown pokemon with a "-/-" KD?')
